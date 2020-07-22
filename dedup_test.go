@@ -4,7 +4,7 @@ import "testing"
 import "github.com/stretchr/testify/assert"
 
 func TestDeduper(t *testing.T) {
-	d := NewDeduper(3)
+	d := NewDeduper(3, InverseBloomFilterFactory(1024*1024*1)) // 1MiB
 	// [], [], []
 	// ^^
 
@@ -82,7 +82,8 @@ func TestDeduper(t *testing.T) {
 }
 
 func BenchmarkTestLayerZero(b *testing.B) {
-	d := NewDeduper(10)
+	d := NewDeduper(1, InverseBloomFilterFactory(1024*1024*1)) // 1MiB
+
 	k := []byte("aaa")
 	d.Add(k)
 	b.ResetTimer()
