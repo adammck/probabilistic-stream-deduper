@@ -1,18 +1,13 @@
 package dedup
 
-import boom "github.com/tylertreat/BoomFilters"
-import "container/ring"
-import "sync"
+import (
+	"container/ring"
+	"sync"
 
-type Message struct {
-	whatever string
-	offset   int
-}
+	boom "github.com/tylertreat/BoomFilters"
+)
 
-func Key(msg Message) []byte {
-	return []byte(msg.whatever)
-}
-
+// Deduper is a struct.
 type Deduper struct {
 	ring    *ring.Ring // banana phone
 	factory func() boom.Filter
@@ -36,16 +31,19 @@ func NewDeduper(n int, factory func() boom.Filter) *Deduper {
 	return d
 }
 
-// BloomFilterFactory returns a func to return a Bloom Filter (optimized to
-// store n items with the given false-positive rate), to be given to NewDeduper.
+// BloomFilterFactory returns a func to return a Bloom Filter. Memory usage is
+// optimized to store n items with the given false-positive rate. The actual
+// number of buckets is variable.
 func BloomFilterFactory(n uint, fpRate float64) func() boom.Filter {
 	return func() boom.Filter {
 		return boom.NewBloomFilter(n, fpRate)
 	}
 }
 
-// InverseBloomFilterFactory returns a func to return a Inverse Bloom Filter
-// (with the given capacity, in bytes), to be given to NewDeduper.
+// InverseBloomFilterFactory returns a func to return a Inverse Bloom Filter.
+// Memory usage will be roughly the capacity multipled by eight (bytes), because
+// each bucket is a 64 bit pointer. This is a lower-level interface than the
+// other two.
 func InverseBloomFilterFactory(capacity uint) func() boom.Filter {
 	return func() boom.Filter {
 		return boom.NewInverseBloomFilter(capacity)
@@ -83,7 +81,7 @@ func (d *Deduper) Test(k []byte) bool {
 			return true
 		}
 
-		n += 1
+		n++
 	}
 
 	return false
