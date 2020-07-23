@@ -1,7 +1,11 @@
 package dedup
 
-import "testing"
-import "github.com/stretchr/testify/assert"
+import (
+	"crypto/rand"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
 
 func TestDeduper(t *testing.T) {
 	d := NewDeduper(3, InverseBloomFilterFactory(1024*1024*1)) // 1MiB
@@ -81,14 +85,35 @@ func TestDeduper(t *testing.T) {
 	assert.False(t, d.Test(kd))
 }
 
-func BenchmarkTestLayerZero(b *testing.B) {
-	d := NewDeduper(1, InverseBloomFilterFactory(1024*1024*1)) // 1MiB
-
-	k := []byte("aaa")
-	d.Add(k)
-	b.ResetTimer()
+func BenchmarkBloomFilterAdd1M(b *testing.B) {
+	// expect 1M keys, want 1/1M fpr
+	d := NewDeduper(1, BloomFilterFactory(1000000, 0.000001))
 
 	for i := 0; i < b.N; i++ {
-		d.Test(k)
+		k := make([]byte, 16)
+		rand.Read(k)
+		d.Add(k)
+	}
+}
+
+func BenchmarkInverseBloomFilterAdd1M(b *testing.B) {
+	// 1M buckets
+	d := NewDeduper(1, InverseBloomFilterFactory(1000000))
+
+	for i := 0; i < b.N; i++ {
+		k := make([]byte, 16)
+		rand.Read(k)
+		d.Add(k)
+	}
+}
+
+func BenchmarkStableBloomFilterAdd1M(b *testing.B) {
+	// 1M buckets, want 1/1M fpr
+	d := NewDeduper(1, StableBloomFilterFactory(1000000, 0.000001))
+
+	for i := 0; i < b.N; i++ {
+		k := make([]byte, 16)
+		rand.Read(k)
+		d.Add(k)
 	}
 }
